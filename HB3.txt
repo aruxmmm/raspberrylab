@@ -110,10 +110,24 @@ def distance_loop():
     while True:
         dist = distance()
         print("Measured Distance = {:.2f} cm".format(dist))
+
         if dist < 10:
             beep(0.1)
-        else:
-            time.sleep(1)
+            p_R.start(100)
+            p_G.stop()
+            p_B.stop()
+
+        elif 10 <= dist <= 50:
+            p_G.start(100)
+            p_R.stop()
+            p_B.stop()
+
+        elif dist > 50:
+            p_B.start(100)
+            p_R.stop()
+            p_G.stop()
+
+        time.sleep(1)  # 延迟 1 秒
 
 def destroy():
     off_buzzer()

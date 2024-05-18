@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+import RPi.GPIO as GPIO
+import time
+
+# 设置颜色代码
+colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFF00FF, 0x00FFFF, 0xFFFF00]
+
+# 设置GPIO针脚
+pins = {'pin_R': 13, 'pin_G': 18, 'pin_B': 19}
+
+# 设置GPIO模式为BCM
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)  # Disable warnings
+
+# 清理配置
+GPIO.cleanup()
+
+# 初始化针脚，并设置为输出模式，高电平关闭LED
+for pin in pins.values():
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.HIGH)
+
+# 创建PWM对象并设置频率为2000Hz
+p_R = GPIO.PWM(pins['pin_R'], 2000)
+p_G = GPIO.PWM(pins['pin_G'], 2000)
+p_B = GPIO.PWM(pins['pin_B'], 2000)
+
+# 启动PWM，初始占空比为0（关闭LED）
+p_R.start(0)
+p_G.start(0)
+p_B.start(0)
+
+# 映射函数
+def map(x, in_min, in_max, out_min, out_max):
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+# 渐变函数
+def gradient(start_col, end_col, duration=1):
+    step = 50  # 定义总步数
+    sleep_time = duration / step  # 计算每步间隔时间
+
+    start_R = (start_col & 0xFF0000) >> 16
+    start_G = (start_col & 0x00FF00) >> 8
+    start_B = (start_col & 0x0000FF)
+
+    end_R = (end_col & 0xFF0000) >> 16
+    end_G = (end_col & 0x00FF00) >> 8
+    end_B = (end_col & 0x0000FF)
+
+    for i in range(step + 1):
+        R_val = int(start_R + (end_R - start_R) * i / step)
+        G_val = int(start_G + (end_G - start_G) * i / step)
+        B_val = int(start_B + (end_B - start_B) * i / step)
+
+        p_R.ChangeDutyCycle(map(R_val, 0, 255, 0, 100))
+        p_G.ChangeDutyCycle(map(G_val, 0, 255, 0, 100))
+        p_B.ChangeDutyCycle(map(B_val, 0, 255, 0, 100))
+        time.sleep(sleep_time)
+
+# 主循环
+def loop():
+    while True:
+        for i in range(len(colors)-1):
+            gradient(colors[i], colors[i+1])
+        gradient(colors[-1], colors[0])  # 循环到第一个颜色
+
+# 清理函数
+def destroy():
+    p_R.stop()
+    p_G.stop()
+    p_B.stop()
+    for pin in pins.values():
+        GPIO.output(pin, GPIO.HIGH)
+    GPIO.cleanup()
+
+# 主程序
+if __name__ == "__main__":
+    try:
+        loop()
+    except KeyboardInterrupt:
+        destroy()

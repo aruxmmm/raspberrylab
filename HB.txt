@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+import RPi.GPIO as GPIO
+import time
+
+# 超声波传感器引脚定义 (BCM 模式)
+GPIO_TRIGGER = 23
+GPIO_ECHO = 24
+
+# 蜂鸣器引脚定义 (BCM 模式)
+Buzzer = 17  # GPIO 17 对应物理引脚 11
+
+# 设置 GPIO 模式为 BCM
+GPIO.setmode(GPIO.BCM)
+
+def setup_buzzer(pin):
+    global BuzzerPin
+    BuzzerPin = pin
+    GPIO.setup(BuzzerPin, GPIO.OUT)
+    GPIO.output(BuzzerPin, GPIO.HIGH)
+
+def on_buzzer():
+    GPIO.output(BuzzerPin, GPIO.LOW)
+
+def off_buzzer():
+    GPIO.output(BuzzerPin, GPIO.HIGH)
+
+def beep(x):
+    on_buzzer()
+    time.sleep(x)
+    off_buzzer()
+    time.sleep(x)
+
+def setup_ultrasonic():
+    # 设置 GPIO 的工作方式 (IN / OUT)
+    GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
+    GPIO.setup(GPIO_ECHO, GPIO.IN)
+
+def distance():
+    # 发送高电平信号到 Trig 引脚
+    GPIO.output(GPIO_TRIGGER, True)
+    time.sleep(0.00001)
+    GPIO.output(GPIO_TRIGGER, False)
+
+    start_time = time.time()
+    stop_time = time.time()
+
+    # 记录发送超声波的时刻
+    while GPIO.input(GPIO_ECHO) == 0:
+        start_time = time.time()
+
+    # 记录接收到返回超声波的时刻
+    while GPIO.input(GPIO_ECHO) == 1:
+        stop_time = time.time()
+
+    # 计算超声波的往返时间
+    time_elapsed = stop_time - start_time
+    # 计算距离 (34300 cm/s 是声速)
+    distance = (time_elapsed * 34300) / 2
+
+    return distance
+
+def loop():
+    while True:
+        dist = distance()
+        print("Measured Distance = {:.2f} cm".format(dist))
+        if dist < 10:  # 当距离小于10厘米时，蜂鸣器响
+            beep(0.1)  # 蜂鸣器响0.1秒
+        else:
+            time.sleep(1)  # 否则等待1秒再测量
+
+def destroy():
+    GPIO.output(BuzzerPin, GPIO.HIGH)
+    GPIO.cleanup()  # 释放资源
+
+if __name__ == '__main__':
+    setup_buzzer(Buzzer)
+    setup_ultrasonic()
+    try:
+        loop()
+    except KeyboardInterrupt:
+        destroy()

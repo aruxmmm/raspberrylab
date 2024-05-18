@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distance Measurement</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Real-time Measured Distance</h1>
+    <canvas id="distanceChart" width="400" height="200"></canvas>
+    <script>
+        const ctx = document.getElementById('distanceChart').getContext('2d');
+        const distanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Distance (cm)',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1,
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        const websocket = new WebSocket('ws://<192.168.137.208>:8765');
+        
+        websocket.onmessage = function(event) {
+            const distance = parseFloat(event.data);
+            const now = new Date().toLocaleTimeString();
+            
+            if (distanceChart.data.labels.length > 20) {
+                distanceChart.data.labels.shift();
+                distanceChart.data.datasets[0].data.shift();
+            }
+            
+            distanceChart.data.labels.push(now);
+            distanceChart.data.datasets[0].data.push(distance);
+            distanceChart.update();
+        };
+    </script>
+</body>
+</html>

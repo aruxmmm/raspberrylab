@@ -36,7 +36,7 @@
             }
         });
 
-        const websocket = new WebSocket('ws://<192.168.137.208>:8765');
+        const websocket = new WebSocket('ws://<192.168.137.160>:8765');
         
         websocket.onmessage = function(event) {
             const distance = parseFloat(event.data);
